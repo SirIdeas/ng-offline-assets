@@ -1,10 +1,10 @@
 'use strict';
 
-function oaBgDirective(offlineAssets, $timeout) { 'ngInject';
+function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
   return {
     restrict: 'A',
     scope: {
-      url: '=oaSrc',
+      url: '=oaBg',
       from: '=oaFrom',
       dest: '=oaDest',
       important: '=oaImportant',
@@ -14,12 +14,12 @@ function oaBgDirective(offlineAssets, $timeout) { 'ngInject';
       removeLoading: '@oaRemoveLoadingClass',
     },
     link: function(scope, element, attrs) {
-      ngDownloadFile.tagDownload(scope, element, function(url) {
-        //Set src to image attrs
-        $timeout(function(){
-          element.attr('src', url);
-        }, 10);
-      });
+      // offlineAssetsService.tagDownload(scope, element, function(url) {
+      //   //Set BG style with image result
+      //   $timeout(function(){
+      //     element.css('background-image', 'url(' + url + ')');
+      //   }, 10);
+      // });
     }
   };
 };
@@ -27,5 +27,7 @@ function oaBgDirective(offlineAssets, $timeout) { 'ngInject';
 import { _name as offlineAssets } from '../services/offlineAssets';
 
 export var _name = 'oaBg';
-export default angular.module(_name, [])
+export default angular.module(_name, [
+  offlineAssets
+])
   .directive(_name, oaBgDirective);
