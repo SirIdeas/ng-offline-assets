@@ -14,7 +14,8 @@ function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
       // removeLoading: '@oaRemoveLoadingClass',
     },
     link: function(scope, element, attrs) {
-      window.offlineAssetsService = offlineAssetsService;
+      element.attr('src', scope.url);
+
       offlineAssetsService.download(scope.url).$promise.then(function(url) {
         
         // Set src to image attrs
@@ -24,7 +25,8 @@ function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
 
       })
 
-      // Çaptar el error
+
+      // Captar el error
       .catch(function (err) {
         console.log(err);
 

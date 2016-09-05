@@ -19,29 +19,33 @@ function offlineAssetsService(offlineAssetsFsService, $q, $log, $http){ 'ngInjec
 
     .catch(function (err) {
 
-      var url = new URL('http://localhost:3000/_file');
-      url.searchParams.append('url', encodeURIComponent(item.$url));
-      var urlGet = url.toString();
-      url.searchParams.append('head', 1);
-      var urlHead = url.toString();
+      // var url = new URL('http://localhost:3000/_file');
+      // url.searchParams.append('url', encodeURIComponent(item.$url));
+      // var urlGet = url.toString();
+      // url.searchParams.append('head', 1);
+      // var urlHead = url.toString();
 
-      console.log(urlGet);
-      console.log(urlHead);
+      // console.log(urlGet);
+      // console.log(urlHead);
 
-      $http.get(urlGet).then(function (res) {
-        console.log(res);
-      });
+      var url = item.$url.toString();
 
-      $http.get(urlHead).then(function (res) {
-        console.log(res);
+      $http.head(url).then(function (res) {
+        window.a = res.headers;
+        console.log([
+          parseInt(res.headers('content-length')),
+          new Date(res.headers('last-modified')),
+          res.headers(),
+        ]);
       });
 
     });
+    
   }
 
   // Funciona para inicar la descarga de un archivo
   function download (url){
-    $log.log(['download:', url].join(''));
+    // $log.log(['download:', url].join(''));
 
     if (!items[url]) {
       
