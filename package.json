@@ -1,0 +1,36 @@
+{
+  "name": "ng-offline-assets",
+  "version": "0.0.1",
+  "description": "Angular JS module to use offline resources as images, json, css, js among others",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SirIdeas/ng-offline-assets.git"
+  },
+  "keywords": [
+    "angular",
+    "offline",
+    "html5",
+    "js",
+    "sync"
+  ],
+  "author": "Alex J. Rondon <arondon@sirideas.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SirIdeas/ng-offline-assets/issues"
+  },
+  "homepage": "https://github.com/SirIdeas/ng-offline-assets#readme",
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-es2015": "^6.14.0",
+    "gulp": "^3.9.1",
+    "gulp-util": "^3.0.7",
+    "gulp-webpack": "^1.5.0",
+    "ng-annotate-loader": "^0.1.1",
+    "webpack": "^1.13.2"
+  }
+}
