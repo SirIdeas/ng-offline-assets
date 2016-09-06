@@ -212,7 +212,6 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
     if(missingBytes > 0) {
       requestStorageQuota(missingBytes + 10 * 1024)
         .then(function(bytesGranted) {
-          console.log(['dd', bytesGranted, neededBytes])
           deferred.resolve();
         }, function(e) {
           deferred.reject(e);
@@ -266,12 +265,9 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
     var deferred = $q.defer();
 
     function customErrorHandler (err) {
-      $log.error(err);
       if(err.name === 'QuotaExceededError') {
         requestStorageQuota()
-          .then(customDownloadFile, function(err) {
-            deferred.reject(err);
-          });
+          .then(customDownloadFile, deferred.reject);
       }else{
         deferred.reject(err);
       }
@@ -286,16 +282,18 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
       $q.when().then(function () {
         return mkdir(dirs.join('/'));
 
-      }).catch(customErrorHandler)
+      }, customErrorHandler)
 
       // Obtener el fileEntry
-      .then(function (r) {
+      .then(function () {
         return getFileEntry(localUrl, true);
 
-      }).catch(customErrorHandler)
+      }, customErrorHandler)
 
       // Obtener la instancia del writer para el archivo
       .then(function (fileEntry) {
+        if (!fileEntry) return;
+        
         var localDeferred = $q.defer();
         fileEntry.createWriter(function (writer) {
 
@@ -310,10 +308,11 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
         }, localDeferred.reject);
         return localDeferred.promise;
 
-      }).catch(customErrorHandler)
+      }, customErrorHandler)
 
       // Obtener el archivo por AJAX y escribir en el archivo
       .then(function (writer) {
+        if (!writer) return;
 
         var xhr = new XMLHttpRequest(); 
         xhr.open('GET', fromUrl, true); 
@@ -324,14 +323,14 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
             requestStorageQuotaIfRequired(xhr.response.size).then(function() {
               writer.write(xhr.response);
               attrs.currentUsage += xhr.response.size;
-            })
-            .catch(customErrorHandler);
+            }, customErrorHandler);
+
           }
         };
 
         xhr.send(null);
 
-      }).catch(customErrorHandler);
+      }, customErrorHandler);
 
     }
 
