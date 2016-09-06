@@ -1,86 +1,142 @@
 'use strict';
 
-function offlineAssetsService(offlineAssetsFsService, $q, $log, $http){ 'ngInject';
-  var fs = offlineAssetsFsService
-  // Lista de descargas
-  var items = {};
-  var queue = [];
-  var isDownloading = false;
+function offlineAssetsService(offlineAssetsFsService, work, $q, $log, $http) { 'ngInject';
+  var fs = offlineAssetsFsService;
 
-  function dequeued () {
-    isDownloading = !!queue.length;
-    if (!isDownloading) return;
-    var idx = queue.shift();
-    var item = items[idx];
-
-    fs.getFile(item.$pathfile).then(function (file) {
-      $log.log([file, item]);
-    })
-
-    .catch(function (err) {
-
-      // var url = new URL('http://localhost:3000/_file');
-      // url.searchParams.append('url', encodeURIComponent(item.$url));
-      // var urlGet = url.toString();
-      // url.searchParams.append('head', 1);
-      // var urlHead = url.toString();
-
-      // console.log(urlGet);
-      // console.log(urlHead);
-
-      var url = item.$url.toString();
-
-      $http.head(url).then(function (res) {
-        window.a = res.headers;
-        console.log([
-          parseInt(res.headers('content-length')),
-          new Date(res.headers('last-modified')),
-          res.headers(),
-        ]);
-      });
-
+  // Realiza el llamado de una lista de callbacks pasando por parametro una url
+  function resolvedUrl(item, url){
+    item.$resolvedUrl = url + '?' + item.$version++;
+    item.$cbs = item.$cbs || [];
+    angular.forEach(item.$cbs, function (cb) {
+      if(cb) cb(item.$resolvedUrl);
     });
-    
   }
 
+  var dest = null;
+
+  var getFileNameTo = function (url) {
+
+    return []
+      .concat((fs.getDest() || '/').split('/'))
+      .concat(dest || [])
+      .concat(url.host.split(':'))
+      .concat(url.pathname.split('/'))
+      .filter(function (valor) {
+        return (valor || '').trim() != '';
+      })
+      .join('/');
+
+  };
+  
+  // Lista de descargas
+  var queue = new work(function (idx, item, next) {
+    var pathfile = getFileNameTo(item.$url);
+    fs.download(item.$url, pathfile).then(function (fileEntry) {
+      $log.log(['downloaded:',item.$url].join(''));
+      resolvedUrl(item, fileEntry.toURL());
+      next();
+    })
+    .catch(function (err) {
+      $log.error([idx, err]);
+      next();
+    });
+  });
+
+
   // Funciona para inicar la descarga de un archivo
-  function download (url){
+  function download (url, cb) {
     // $log.log(['download:', url].join(''));
 
-    if (!items[url]) {
-      
-      queue.push(url);
-      items[url] = {};
+    // Obtener elemento correspondiente a la URL
+    var item = queue.get(url);
 
-      var url = items[url].$url = new URL(url);
-      var deferred = items[url].$deferred = $q.defer();
+    // No existe un elemento para la URL
+    if (!item) {
 
-      items[url].$promise = deferred.promise;
-      items[url].$pathfile = url.host.split(':').concat(url.pathname.split('/')).join('/');
-
-      // Iniciar descarga
-      if (!isDownloading) {
-        isDownloading = true;
-        fs.ready().then(dequeued);
+      // Crear el elemento
+      item = {};
+      item.$version = 1;
+      item.$url = new URL(url);
+      item.$cbs = []; // Lista de callbacks del elemento
+        
+      function addToQueue () {
+        // Agregar al archivo de descargas
+        queue.add(url, item);
+        // Si no se ha iniciado la descargar iniciarla al terminar la carga
+        // del FS.
+        if (!queue.started()) {
+          queue.start();
+          queue.next();
+        }
       }
 
+      fs.ready().then(function () {
+
+        var pathfile = getFileNameTo(item.$url);
+
+        // Obtener la instancia del archivo
+        fs.getFile(pathfile).then(function (ff) {
+          resolvedUrl(item, ff.fileEntry.toURL());
+
+          // Obtener las cabeceras del archivo
+          $http.head(url).then(function (res) {
+            var isUpdate = (!res.headers('content-length') || ff.file.size == parseInt(res.headers('content-length'))) &&
+              (!res.headers('last-modified') || ff.file.lastModifiedDate > new Date(res.headers('last-modified')));
+            
+            if (!isUpdate) {
+              addToQueue();
+            }
+
+          });
+
+        })
+
+        // Si no existe el archivo
+        .catch(addToQueue);
+        
+      });
+
+    } else if (item.$resolvedUrl){
+      cb(item.$resolvedUrl);
     }
 
-    // Retornar el item
-    return items[url];
+    // Agregar el cb recibido por parámetro a la lista de callbacks
+    item.$cbs.push(cb);
+
+  }
+
+  // Remueve un cb
+  function release (url, cb) {
+
+    var item = queue.get(url);
+    if (item) {
+      var idx = item.$cbs.indexOf(cb);
+      if (idx != -1) item.$cbs.splice(idx, 1);
+    }
+
+  }
+
+  // Asigna el directorio destino para los archivos
+  function setDest (pDest) {
+
+    dest = pDest;
 
   }
 
   return {
-    download : download
+    download : download,
+    release : release,
+    setDir: setDest,
   };
 
 }
 
 import { _name as offlineAssetsFs } from './offlineAssetsFs';
+import { _name as work } from './work';
 
 export var _name = 'offlineAssets';
 export default angular.module(_name, [
-  offlineAssetsFs
+  offlineAssetsFs,
+  work
 ])
   .factory([_name, 'Service'].join(''), offlineAssetsService);

@@ -1,6 +1,6 @@
 'use strict';
 
-function offlineAssetsFsService($q, $log){ 'ngInject';
+function offlineAssetsFsService($q, $log) { 'ngInject';
   
   //////////////////////////////////////////////////////////////////////////////
   // Attributos globales
@@ -10,7 +10,13 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
     blockSize: 16 * 1014 * 1024,
 
     // Espacio de la cuota de almacenamiento
-    dest:  'oa/',
+    currentQuota: 0,
+
+    // Espacio usado de la cuota de almacenamiento
+    currentUsage: 0,
+
+    // Espacio de la cuota de almacenamiento
+    dest:  '',
 
   };
 
@@ -28,8 +34,8 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
   // API HTML5 para manejo de archivos
   var requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
   var pStorage = navigator.webkitPersistentStorage || {
-    requestQuota: function(){},
-    queryUsageAndQuota: function(){},
+    requestQuota: function() {},
+    queryUsageAndQuota: function() {},
   };
 
   // Load action when loaded fileSystem
@@ -37,7 +43,7 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
     $log.log('cordova on');
     document.addEventListener('deviceready', function() {
       $log.log('devideready');
-      requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(){
+      requestFileSystem(LocalFileSystem.PERSISTENT, 0, function() {
         $log.log('requestFileSystem');
 
         attrs.dest = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
@@ -52,7 +58,7 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
 
   } else {
     $log.log('cordova off');
-    pStorage.queryUsageAndQuota(function(used, granted){
+    pStorage.queryUsageAndQuota(function(used, granted) {
       $log.log(['queryUsageAndQuota:', used, ', ', granted].join(''));
       attrs.currentQuota = granted;
       attrs.currentUsage = used;
@@ -61,7 +67,7 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
       quotaInfoDeferred.reject(err);
     });
 
-    requestFileSystem(window.PERSISTENT, 0, function(pFs){
+    requestFileSystem(window.PERSISTENT, 0, function(pFs) {
       $log.log('requestFileSystem');
       fs = pFs;
       apiLoadedDeferred.resolve();
@@ -71,7 +77,7 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
 
   }
 
-  readyDeferred.then(function(){
+  readyDeferred.then(function() {
     $log.log('ready');
   }).catch($log.error);
 
@@ -96,22 +102,22 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
    * Call to resolve local file system
    * - pathfile: File URL to get
    */
-  var getFileEntry = ready(function(deferred, pathfile) {
-    $log.log(['getFileEntry:', pathfile].join(''));
+  var getFileEntry = ready(function(deferred, pathfile, create) {
+    // $log.log(['getFileEntry:', pathfile].join(''));
 
     // If can't check if file exists then call success directly
     if (window.resolveLocalFileSystemURL) {
       window.resolveLocalFileSystemURL(pathfile,
-        function(fileEntry){
+        function(fileEntry) {
           deferred.resolve(fileEntry);
-        }, function(err){
+        }, function(err) {
           deferred.reject(err);
         });
     } else if (fs) {
-      fs.root.getFile(pathfile, {create: false},
-        function(fileEntry){
+      fs.root.getFile(pathfile, {create: !!create},
+        function(fileEntry) {
           deferred.resolve(fileEntry);
-        }, function(err){
+        }, function(err) {
           deferred.reject(err);
         });
     } else {
@@ -129,13 +135,16 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
    * - pathfile: URL to download
    */
   var getFile = ready(function(deferred, pathfile) {
-    $log.log(['getFile:', pathfile].join(''));
+    // $log.log(['getFile:', pathfile].join(''));
     
     // Check if file exist.
-    getFileEntry(pathfile).then(function (fileEntry){
-      fileEntry.file(function(file){
-        deferred.resolve(file);
-      }, function(err){
+    getFileEntry(pathfile).then(function (fileEntry) {
+      fileEntry.file(function(file) {
+        deferred.resolve({
+          fileEntry: fileEntry,
+          file: file
+        });
+      }, function(err) {
         deferred.reject(err);
       });
     })
@@ -145,10 +154,206 @@ function offlineAssetsFsService($q, $log){ 'ngInject';
 
   });
 
+  // Indicate if any quota request was be rejected
+  var anyQuotaRequestReject = false;
+
+  /**
+   * Solicitar espacio de almacenamiento
+   */
+  function requestStorageQuota (requiredBytes) {
+
+    var deferred = $q.defer();
+    var quotaRequestRejectedError = function() {
+      return { code: 0, name: 'QuotaRequestRejected' }
+    };
+
+    if(anyQuotaRequestReject) {
+      deferred.reject(quotaRequestRejectedError());
+
+    }else{
+
+      if(!requiredBytes) {
+        requiredBytes = 0;
+      }
+
+      requiredBytes = attrs.currentQuota + Math.max(requiredBytes, attrs.blockSize);
+
+      pStorage.requestQuota(requiredBytes,
+        function(bytesGranted) {
+          if(!bytesGranted) {
+            // log(['requestQuotaReject']);
+            anyQuotaRequestReject = true;
+            deferred.reject(quotaRequestRejectedError());
+          }else{
+            // log(['requestQuotaGranted', bytesGranted]);
+            attrs.currentQuota = bytesGranted;
+            deferred.resolve(bytesGranted);
+          }
+        }, function(err) {
+          deferred.reject(err);
+        }
+      );
+
+    }
+
+    return deferred.promise;
+
+  };
+
+  /**
+   * Solicita mas bytes si es necesario
+   */
+  function requestStorageQuotaIfRequired (neededBytes) {
+
+    var deferred = $q.defer();
+
+    var missingBytes = attrs.currentUsage + neededBytes - attrs.currentQuota;
+
+    if(missingBytes > 0) {
+      requestStorageQuota(missingBytes + 10 * 1024)
+        .then(function(bytesGranted) {
+          console.log(['dd', bytesGranted, neededBytes])
+          deferred.resolve();
+        }, function(e) {
+          deferred.reject(e);
+        });
+    }else{
+      deferred.resolve();
+    }
+
+    return deferred.promise;
+  }
+
+  /**
+   * Crear un directorio
+   */
+  function mkdir (dir) {
+
+    var deferred = $q.defer();
+
+    var dirs = dir.split('/');
+
+    var _mkdir = function(folders, rootDirEntry) {
+      if (folders[0] == '.' || folders[0] == '') {
+        folders = folders.slice(1);
+      }
+
+      if (!folders.length) {
+        deferred.resolve();
+        return;
+      }
+
+      rootDirEntry.getDirectory(folders[0], {create: true}, function(dirEntry) {
+        _mkdir(folders.slice(1), dirEntry);
+      }, deferred.reject);
+
+    };
+
+    _mkdir(dirs, fs.root);
+
+    return deferred.promise;
+
+  }
+
+  /**
+   * Call API to download file
+   * - fromUrl: External URL of fila
+   * - localUrl: File URL to get
+   */
+  function download(fromUrl, localUrl) {
+    // $log.log(['callDownloadFile:', fromUrl, localUrl].join(' '));
+
+    var deferred = $q.defer();
+
+    function customErrorHandler (err) {
+      $log.error(err);
+      if(err.name === 'QuotaExceededError') {
+        requestStorageQuota()
+          .then(customDownloadFile, function(err) {
+            deferred.reject(err);
+          });
+      }else{
+        deferred.reject(err);
+      }
+    }
+
+    function customDownloadFile () {
+
+      var dirs = localUrl.split('/');
+      var fileName = dirs.pop();
+
+      // Crear Directorio
+      $q.when().then(function () {
+        return mkdir(dirs.join('/'));
+
+      }).catch(customErrorHandler)
+
+      // Obtener el fileEntry
+      .then(function (r) {
+        return getFileEntry(localUrl, true);
+
+      }).catch(customErrorHandler)
+
+      // Obtener la instancia del writer para el archivo
+      .then(function (fileEntry) {
+        var localDeferred = $q.defer();
+        fileEntry.createWriter(function (writer) {
+
+          writer.onwriteend = function() {
+            deferred.resolve(fileEntry);
+          };
+
+          writer.onerror = customErrorHandler;
+
+          localDeferred.resolve(writer);
+
+        }, localDeferred.reject);
+        return localDeferred.promise;
+
+      }).catch(customErrorHandler)
+
+      // Obtener el archivo por AJAX y escribir en el archivo
+      .then(function (writer) {
+
+        var xhr = new XMLHttpRequest(); 
+        xhr.open('GET', fromUrl, true); 
+        xhr.responseType = 'blob';
+        xhr.onload = function() {
+          if(xhr.status == 200) {
+            window.blob = xhr.response;
+            requestStorageQuotaIfRequired(xhr.response.size).then(function() {
+              writer.write(xhr.response);
+              attrs.currentUsage += xhr.response.size;
+            })
+            .catch(customErrorHandler);
+          }
+        };
+
+        xhr.send(null);
+
+      }).catch(customErrorHandler);
+
+    }
+
+    customDownloadFile();
+
+    return deferred.promise;
+
+  }
+
+  function getDest () {
+    return attrs.dest;
+  }
+
   return {
     ready: ready,
     getFileEntry : getFileEntry,
-    getFile : getFile
+    getFile : getFile,
+    requestStorageQuota: requestStorageQuota,
+    requestStorageQuotaIfRequired: requestStorageQuotaIfRequired,
+    mkdir: mkdir,
+    download: download,
+    getDest: getDest,
   };
 
 }

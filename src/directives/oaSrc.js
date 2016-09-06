@@ -14,23 +14,19 @@ function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
       // removeLoading: '@oaRemoveLoadingClass',
     },
     link: function(scope, element, attrs) {
-      element.attr('src', scope.url);
 
-      offlineAssetsService.download(scope.url).$promise.then(function(url) {
-        
+      function cb(url) {
         // Set src to image attrs
         $timeout(function(){
           element.attr('src', url);
         }, 10);
+      }
 
-      })
-
-
-      // Captar el error
-      .catch(function (err) {
-        console.log(err);
-
+      offlineAssetsService.download(scope.url, cb);
+      element.on('$destroy', function () {
+        offlineAssetsService.release(scope.url, cb);
       });
+
     }
   };
 };

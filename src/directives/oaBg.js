@@ -14,12 +14,12 @@ function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
       removeLoading: '@oaRemoveLoadingClass',
     },
     link: function(scope, element, attrs) {
-      // offlineAssetsService.tagDownload(scope, element, function(url) {
-      //   //Set BG style with image result
-      //   $timeout(function(){
-      //     element.css('background-image', 'url(' + url + ')');
-      //   }, 10);
-      // });
+      offlineAssetsService.download(scope.url, function (url) {
+        // Set src to image attrs
+        $timeout(function(){
+          element.css('background-image', 'url(' + url + ')');
+        }, 10);
+      });
     }
   };
 };
