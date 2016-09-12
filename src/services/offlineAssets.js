@@ -73,16 +73,17 @@ function offlineAssetsService(offlineAssetsFsService, work, $q, $log, $http) { '
       fs.ready().then(function () {
 
         var pathfile = getFileNameTo(item.$url);
-
         // Obtener la instancia del archivo
         fs.getFile(pathfile).then(function (ff) {
+          
           resolvedUrl(item, ff.fileEntry.toURL());
 
           // Obtener las cabeceras del archivo
           $http.head(url).then(function (res) {
+
             var isUpdate = (!res.headers('content-length') || ff.file.size == parseInt(res.headers('content-length'))) &&
               (!res.headers('last-modified') || ff.file.lastModifiedDate > new Date(res.headers('last-modified')));
-            
+
             if (!isUpdate) {
               addToQueue();
             }

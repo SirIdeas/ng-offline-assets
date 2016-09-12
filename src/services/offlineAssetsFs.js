@@ -57,18 +57,23 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
     }, false);
 
   } else {
-    $log.log('cordova off');
+    // $log.log('cordova off');
     pStorage.queryUsageAndQuota(function(used, granted) {
-      $log.log(['queryUsageAndQuota:', used, ', ', granted].join(''));
+      $log.log(['queryUsageAndQuota:', used, ', ', granted, ', ', granted-used, ', ', attrs.blockSize].join(''));
       attrs.currentQuota = granted;
       attrs.currentUsage = used;
-      quotaInfoDeferred.resolve(used, granted);
+      if ((granted-used)<attrs.blockSize/2) {
+        requestStorageQuota()
+          .then(quotaInfoDeferred.resolve, quotaInfoDeferred.reject);
+      }else {
+        quotaInfoDeferred.resolve(used, granted);
+      }
     }, function (err) {
       quotaInfoDeferred.reject(err);
     });
 
     requestFileSystem(window.PERSISTENT, 0, function(pFs) {
-      $log.log('requestFileSystem');
+      // $log.log('requestFileSystem');
       fs = pFs;
       apiLoadedDeferred.resolve();
     }, function (err) {
@@ -107,19 +112,13 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
 
     // If can't check if file exists then call success directly
     if (window.resolveLocalFileSystemURL) {
-      window.resolveLocalFileSystemURL(pathfile,
-        function(fileEntry) {
-          deferred.resolve(fileEntry);
-        }, function(err) {
-          deferred.reject(err);
-        });
+      window.resolveLocalFileSystemURL(pathfile, deferred.resolve, deferred.reject);
     } else if (fs) {
-      fs.root.getFile(pathfile, {create: !!create},
-        function(fileEntry) {
-          deferred.resolve(fileEntry);
-        }, function(err) {
-          deferred.reject(err);
-        });
+      fs.root.getFile(pathfile, {create: !!create}, function (e) {
+        deferred.resolve(e);
+      }, function (e) {
+        deferred.reject(e);
+      });
     } else {
       deferred.reject({
         code: 0,
@@ -185,7 +184,7 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
             anyQuotaRequestReject = true;
             deferred.reject(quotaRequestRejectedError());
           }else{
-            // log(['requestQuotaGranted', bytesGranted]);
+            $log.log(['requestQuotaGranted', bytesGranted]);
             attrs.currentQuota = bytesGranted;
             deferred.resolve(bytesGranted);
           }
@@ -227,7 +226,6 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
    * Crear un directorio
    */
   function mkdir (dir) {
-
     var deferred = $q.defer();
 
     var dirs = dir.split('/');
@@ -238,13 +236,15 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
       }
 
       if (!folders.length) {
-        deferred.resolve();
+        deferred.resolve(dir);
         return;
       }
 
       rootDirEntry.getDirectory(folders[0], {create: true}, function(dirEntry) {
         _mkdir(folders.slice(1), dirEntry);
-      }, deferred.reject);
+      }, function (err) {
+        deferred.reject(err);
+      });
 
     };
 
@@ -253,6 +253,28 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
     return deferred.promise;
 
   }
+
+  /**
+   * Remove physical file.
+   * - params.fileEntry: FileEntry(cordova) instance
+   * - params.success: callback when is success
+   * - params.fail: callback when is fail
+   */
+  var removeFile = function(fileEntry) {
+    // $log.log(['removeFile']);
+    if(!fileEntry) return;
+
+    var deferred = $q.defer();
+
+    fileEntry.remove(function(file){
+      deferred.resolve(fileEntry);
+    }, function(err){
+      deferred.reject(err);
+    });
+
+    return deferred.promise;
+
+  };
 
   /**
    * Call API to download file
@@ -264,36 +286,50 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
 
     var deferred = $q.defer();
 
-    function customErrorHandler (err) {
-      if(err.name === 'QuotaExceededError') {
-        requestStorageQuota()
-          .then(customDownloadFile, deferred.reject);
-      }else{
-        deferred.reject(err);
-      }
+    function customErrorHandler (msg) {
+      return function (err) {
+        if(err.name === 'QuotaExceededError') {
+          requestStorageQuota()
+            .then(customDownloadFile, deferred.reject);
+        }else{
+          console.log(msg);
+          deferred.reject(err);
+        }
+      };
     }
 
     function customDownloadFile () {
 
       var dirs = localUrl.split('/');
-      var fileName = dirs.pop();
+      var filename = dirs.pop();
 
       // Crear Directorio
       $q.when().then(function () {
         return mkdir(dirs.join('/'));
 
-      }, customErrorHandler)
+      }, customErrorHandler('mkdir'))
+
+      // Obtener el fileEntry para borrarlo
+      .then(function () {
+        return getFileEntry(localUrl);
+
+      }, function () {})
+
+      // Obtener el fileEntry
+      .then(function (fileEntry) {
+        return removeFile(fileEntry);
+
+      }, function () {})
 
       // Obtener el fileEntry
       .then(function () {
         return getFileEntry(localUrl, true);
 
-      }, customErrorHandler)
+      }, customErrorHandler('getFileEntry'))
 
       // Obtener la instancia del writer para el archivo
       .then(function (fileEntry) {
         if (!fileEntry) return;
-        
         var localDeferred = $q.defer();
         fileEntry.createWriter(function (writer) {
 
@@ -301,14 +337,14 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
             deferred.resolve(fileEntry);
           };
 
-          writer.onerror = customErrorHandler;
+          writer.onerror = customErrorHandler('writer');
 
           localDeferred.resolve(writer);
 
         }, localDeferred.reject);
         return localDeferred.promise;
 
-      }, customErrorHandler)
+      }, customErrorHandler('createWriter'))
 
       // Obtener el archivo por AJAX y escribir en el archivo
       .then(function (writer) {
@@ -323,14 +359,14 @@ function offlineAssetsFsService($q, $log) { 'ngInject';
             requestStorageQuotaIfRequired(xhr.response.size).then(function() {
               writer.write(xhr.response);
               attrs.currentUsage += xhr.response.size;
-            }, customErrorHandler);
+            }, customErrorHandler('requestStorageQuotaIfRequired'));
 
           }
         };
 
         xhr.send(null);
 
-      }, customErrorHandler);
+      }, customErrorHandler('finish'));
 
     }
 
