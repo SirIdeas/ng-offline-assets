@@ -34,15 +34,14 @@ You can use the directives `oa-bg` and `oa-src` to sync images into filesystem a
 
 #### Absolute URL
 ```html
-<img oa-src="'http://sirideas.github.io/ng-offline-assets/assets/sirideas.png'">
 <!-- Save imagen in /sirideas.github.io/ng-offline-assets/assets/sirideas.png -->
+<img oa-src="'http://sirideas.github.io/ng-offline-assets/assets/sirideas.png'">
 ```
 
 #### Relative URL
 ```html
-<dvi oa-bg="'assets/sirideas.png'">
 <!-- Save imagen in /<HOST>/<PORT>/assets/sirideas.png -->
-  src="">
+<dvi oa-bg="'assets/sirideas.png'">
 ```
 
 ## Licence
