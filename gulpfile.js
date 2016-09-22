@@ -4,6 +4,7 @@ var path = require('path');
 
 var gulp = require('gulp');
 var gutil = require('gulp-util');
+var guglify = require('gulp-uglifyjs');
 var webpack = require('gulp-webpack');
 
 var pkg = require('./package.json');
@@ -45,8 +46,10 @@ function webpackWrapper(callback) {
 
   return gulp.src([ pkg.main ])
     .pipe(webpack(webpackOptions, null, webpackChangeHandler))
-    .pipe(gulp.dest(''));
-
+    .pipe(gulp.dest('dist/js'))
+    .pipe(guglify(bower.name.concat('.min.js')))
+    .pipe(gulp.dest('dist/js'));
+    
 }
 
 gulp.task('build', function () {
