@@ -5,7 +5,7 @@
     "Alex J. Rondon <arondon@sirideas.com>"
   ],
   "description": "Angular JS module to use offline resources as images, json, css, js among others",
-  "main": "dist/ng-offline-assets.js",
+  "main": "ng-offline-assets.js",
   "keywords": [
     "angular",
     "offline",
