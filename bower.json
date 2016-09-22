@@ -20,15 +20,12 @@
   },
   "license": "MIT",
   "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "demo",
-    ".bowerrc",
-    ".gitignore",
-    "gulpfile.js",
-    "test",
-    "tests"
+    "!ng-offline-assets.js",
+    "!ng-offline-assets.min.js",
+    "!bower.json",
+    "!package.json",
+    "!README.md",
+    "!LICENCE"
   ],
   "dependencies": {
     "angular": "^1.5.8"
