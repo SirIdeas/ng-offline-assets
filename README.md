@@ -1,5 +1,7 @@
 # ng-offline-assets
 
+Easy to use bower package to use assets files offline, downloading these into local file system with the HTML5 api.
+
 ## Installation
 
 ## Dependencies
@@ -12,10 +14,12 @@ Use bower:
 $ bower install angular-toastr
 ```
 
-Or you can download the package and add javascript file:
+Or you can download the package [here](https://codeload.github.com/SirIdeas/ng-offline-assets/zip/master).
+
+Add javascript file to html file, for example:
 
 ```html
-<script type="text/javascript" src="angular-toastr.tpls.js"></script>
+<script src="ng-offline-assets/dist/js/ng-offline-assets.js"></script>
 ```
 
 Finally you must add `ngOfflineAssets` to your module dependencies:
@@ -29,11 +33,10 @@ angular.module('app', ['ngOfflineAssets'])
 You can use the directives `oa-bg` and `oa-src` to sync images into filesystem and to access them in offline way.
 
 ```html
-<img oa-src="http://localhost:3000/assets/sirideas.png">
-
-<!-- Save imagen in /localhost/3000/assets/sirideas.png and generate: -->
-<img oa-src="http://localhost:3000/assets/sirideas.png"
-  src="filesystem:http:/localhost:3000/persistent/localhost/3100/assets/sirideas.png">
+<!-- Save imagen in /sirideas.github.io/ng-offline-assets/assets/sirideas.png -->
+<img oa-src="http://sirideas.github.io/ng-offline-assets/assets/sirideas.png">
+<dvi oa-bg="http://sirideas.github.io/ng-offline-assets/assets/sirideas.png">
+  src="">
 ```
 
 ## Licence

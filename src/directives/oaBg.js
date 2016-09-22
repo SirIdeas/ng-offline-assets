@@ -5,16 +5,11 @@ function oaBgDirective(offlineAssetsService, $timeout) { 'ngInject';
     restrict: 'A',
     scope: {
       url: '=oaBg',
-      from: '=oaFrom',
-      dest: '=oaDest',
-      important: '=oaImportant',
-      loadingClass: '@oaLoadingClass',
-      failClass: '@oaFailClass',
-      fail: '&oaOnFail',
-      removeLoading: '@oaRemoveLoadingClass',
+      localUrl: '=oaLocalUrl',
     },
     link: function(scope, element, attrs) {
       offlineAssetsService.download(scope.url, function (url) {
+        scope.localUrl = url;
         // Set src to image attrs
         $timeout(function(){
           element.css('background-image', 'url(' + url + ')');

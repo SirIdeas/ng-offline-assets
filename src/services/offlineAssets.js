@@ -56,7 +56,18 @@ function offlineAssetsService(offlineAssetsFsService, work, $q, $log, $http) { '
       // Crear el elemento
       item = {};
       item.$version = 1;
-      item.$url = new URL(url);
+
+      try{
+        item.$url = new URL(url);
+      } catch (e) {
+        item.$url = (location.origin + location.pathname).split('/');
+        item.$url.pop();
+        item.$url = item.$url.join('/') + url;
+        item.$url = new URL(item.$url);
+      }
+
+      url = item.$url.toString();
+
       item.$cbs = []; // Lista de callbacks del elemento
         
       function addToQueue () {
