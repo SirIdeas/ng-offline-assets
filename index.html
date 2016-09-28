@@ -1,0 +1,103 @@
+<!doctype html>
+<html ng-app="demo">
+  <head>
+    <meta charset="utf-8">
+    <title>Demo ng-offline-assets</title>
+    <style>
+      body{
+        font-family: sans-serif;
+        max-width: 960px;
+        display: block;
+        margin: 0 auto;
+      }
+      [oa-src]{
+        display: block;
+        margin: 0 auto;
+      }
+      [oa-bg]{
+        height: 178px;
+        background-size: contain;
+        background-position: center;
+      }
+      pre {
+        display: block;
+        padding: 9.5px;
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.42857143;
+        color: #333;
+        word-break: break-all;
+        word-wrap: break-word;
+        background-color: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <!--[if lt IE 10]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+    
+    <h1>ng-offline-assets</h1>
+    
+    <div>
+      <hr>
+      <h2>Usage</h2>
+      <div>
+        <h4>Installation</h4>
+        <p>Bower installation</p>
+        <pre>$ bower install ng-offline-assets --save</pre>
+      </div>
+    
+      <div>
+        <h4>Add javascript file</h4>
+        <p>For example</p>
+        <pre>&lt;script src="ng-offline-assets/dist/js/ng-offline-assets.js"&gt;&lt;/script&gt;</pre>
+      </div>
+      
+      <div>
+        <h4>Angular module dependency</h4>
+        <pre>angular.module('app', ['ngOfflineAssets']);</pre>
+      </div>
+    </div>
+    
+    <div>
+      <hr>
+      <h2>Examples</h2>
+      
+      <div>
+        <h4>Directive <code>oa-bg</code></h4>
+        <pre>&lt;div oa-bg="'/assets/sirideas.png'"&gt;&lt;/div&gt;<br>// Local: {{localUrlBg}}</pre>
+        <div oa-bg="'/assets/sirideas.png'" oa-local-url="localUrlBg"></div>
+      </div>
+
+      <div>
+        <h4>Directive <code>oa-src</code></h4>
+        <pre>&lt;img oa-src="'/assets/sirideas.png'"&gt;<br>// Local: {{localUrlSrc}}</pre>
+        <img oa-src="'/assets/sirideas.png'" oa-local-url="localUrlSrc">
+      </div>
+
+    </div>
+
+    <div>
+      <hr>
+      <h2>GitHub repository</h2>
+      <p><a href="https://github.com/SirIdeas/ng-offline-assets/">GitHub repository</a></p>
+    </div>
+
+    <div>
+      <hr>
+      <h2>Licence</h2>
+      <p>Released under <a href="https://github.com/SirIdeas/ng-offline-assets/blob/master/LICENSE">the MIT license</a></p>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <script src="js/ng-offline-assets.min.js"></script>
+    
+    <script>
+      angular.module('demo', ['ngOfflineAssets']);
+    </script>
+
+  </body>
+</html>
