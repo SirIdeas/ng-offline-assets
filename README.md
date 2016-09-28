@@ -1,6 +1,9 @@
 # ng-offline-assets
 
-Easy to use bower package to use assets files offline, downloading these into local file system with the HTML5 api.
+Bower package to use assets files offline downloading these into the file system through the [HTML5 File API](https://dev.w3.org/2009/dap/file-system/file-dir-sys.html).
+
+## Demo
+[Demo](https://sirideas.github.io/ng-offline-assets)
 
 ## Dependencies
 
@@ -44,6 +47,10 @@ You can use the directives `oa-bg` and `oa-src` to sync images into filesystem a
 <dvi oa-bg="'assets/sirideas.png'">
 ```
 
+## Versiones del README
+[English](README.md)
+[Spanish](README.es.md)
+
 ## Licence
 Released under [the MIT license](https://github.com/SirIdeas/ng-offline-assets/blob/master/LICENSE)
 
@@ -53,4 +60,3 @@ Released under [the MIT license](https://github.com/SirIdeas/ng-offline-assets/b
 * First release
 * Directives `oa-bg` and `oa-src`
 * Service `offlineAssets` with the main uses.
-
