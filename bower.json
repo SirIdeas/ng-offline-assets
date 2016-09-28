@@ -22,7 +22,7 @@
   "ignore": [
     "**/.*",
     "bower_components",
-    "demo",
+    "gh-pages",
     "src",
     "node_modules",
     ".bowerrc",

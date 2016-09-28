@@ -47,9 +47,9 @@ function webpackWrapper(callback) {
   return gulp.src([ pkg.main ])
     .pipe(webpack(webpackOptions, null, webpackChangeHandler))
     .pipe(gulp.dest(''))
-    .pipe(gulp.dest('demo/js'))
     .pipe(guglify(bower.name.concat('.min.js')))
-    .pipe(gulp.dest(''));
+    .pipe(gulp.dest(''))
+    .pipe(gulp.dest('gh-pages/js'));
     
 }
 
