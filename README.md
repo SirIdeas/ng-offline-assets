@@ -14,7 +14,7 @@ Bower package to use assets files offline downloading these into the file system
 Bower:
 
 ```
-$ bower install angular-toastr
+$ bower install ng-offline-assets
 ```
 
 Or you can download the package [here](https://codeload.github.com/SirIdeas/ng-offline-assets/zip/master).
